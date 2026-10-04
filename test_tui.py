@@ -138,7 +138,8 @@ class TerminalTimerTests(unittest.TestCase):
         screen.getch.side_effect = [ord("s"), -1, -1, -1, ord("s"), ord("q")]
         with patch("tui.time.monotonic", side_effect=[
             0, 0, 60, 60, 120, 120, 121, 121, 122, 122, 123, 123,
-        ]), patch("tui.curses.beep") as beep:
+        ]), patch("tui.curses.beep") as beep, \
+                patch("tui.curses.has_colors", return_value=False):
             self.app.run(screen)
         self.assertEqual(beep.call_count, 3)
         self.assertTrue(self.app.timer.running)
@@ -153,10 +154,73 @@ class TerminalTimerTests(unittest.TestCase):
                 screen.getmaxyx.return_value = (height, width)
                 self.app.render(screen)
                 for call in screen.addnstr.call_args_list:
-                    row, column, text, limit = call.args
+                    row, column, text, limit, style = call.args
                     self.assertLess(row, height)
                     self.assertEqual(column, 0)
                     self.assertLess(limit, width)
+
+    def test_only_running_countdown_is_highlighted_in_both_layouts(self) -> None:
+        self.app.running_style = curses.A_BOLD | 256
+        screen = Mock()
+
+        def check(active_row: int | None) -> None:
+            for size in ((24, 80), (6, 40)):
+                screen.reset_mock()
+                screen.getmaxyx.return_value = size
+                self.app.render(screen)
+                for call in screen.addnstr.call_args_list:
+                    row, _, _, _, style = call.args
+                    self.assertEqual(
+                        style, self.app.running_style if row == active_row else 0,
+                    )
+
+        check(None)
+        self.app.handle_key(ord("s"), 0)
+        check(2)
+        self.app.handle_key(ord("p"), 100)
+        check(None)
+        self.app.handle_key(ord("s"), 200)
+        check(2)
+        self.app.timer.tick(1000)
+        check(3)
+        self.app.handle_key(ord("p"), 1010)
+        check(None)
+        self.app.handle_key(ord("s"), 1100)
+        check(3)
+        self.app.timer.tick(1390)
+        check(2)
+        self.app.handle_key(ord("r"), 1400)
+        check(None)
+        self.app.timer.reset(SessionSettings(total_work=1, breaks_enabled=False))
+        self.app.timer.start(0)
+        self.app.timer.tick(1)
+        check(None)
+
+    def test_color_setup_and_monochrome_fallback(self) -> None:
+        screen = Mock()
+        screen.getmaxyx.return_value = (24, 80)
+        screen.getch.return_value = ord("q")
+        for colors, default_error, background in (
+            (True, None, -1),
+            (True, curses.error("unsupported"), curses.COLOR_BLACK),
+            (False, None, None),
+        ):
+            with self.subTest(colors=colors, background=background), \
+                    patch("tui.curses.has_colors", return_value=colors), \
+                    patch("tui.curses.use_default_colors", side_effect=default_error) as defaults, \
+                    patch("tui.curses.init_pair") as init_pair, \
+                    patch("tui.curses.color_pair", return_value=256):
+                app = TerminalTimer()
+                app.run(screen)
+                if colors:
+                    init_pair.assert_called_once_with(1, curses.COLOR_GREEN, background)
+                    self.assertEqual(app.running_style, 256 | curses.A_BOLD)
+                    if default_error:
+                        self.assertIn("Default background unavailable", app.message)
+                else:
+                    defaults.assert_not_called()
+                    init_pair.assert_not_called()
+                    self.assertEqual(app.running_style, curses.A_BOLD)
 
 
 if __name__ == "__main__":

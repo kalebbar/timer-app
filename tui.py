@@ -19,6 +19,7 @@ class TerminalTimer:
         self.selected = 0
         self.replace_value = True
         self.started = False
+        self.running_style = curses.A_BOLD
         self.message = "Set a duration, then press S to start."
 
     def read_settings(self) -> SessionSettings:
@@ -122,12 +123,23 @@ class TerminalTimer:
                 self.message,
             ]
         # Leave the last column unused: curses errors when writing bottom-right.
+        active_row = 3 if self.timer.in_break else 2
         for row, text in enumerate(lines[:height]):
             if width > 1:
-                screen.addnstr(row, 0, text, width - 1)
+                style = self.running_style if self.timer.running and row == active_row else 0
+                screen.addnstr(row, 0, text, width - 1, style)
         screen.refresh()
 
     def run(self, screen: curses.window) -> None:
+        if curses.has_colors():
+            background = curses.COLOR_BLACK
+            try:
+                curses.use_default_colors()
+                background = -1
+            except curses.error:
+                self.message += " Default background unavailable; using black for highlight."
+            curses.init_pair(1, curses.COLOR_GREEN, background)
+            self.running_style = curses.color_pair(1) | curses.A_BOLD
         screen.timeout(100)
         pending_bell: float | None = None
         while True:

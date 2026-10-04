@@ -67,6 +67,9 @@ replace its value (Backspace deletes). **B** toggles scheduled breaks.
 same defaults, units, and limits as the desktop interface and remain locked
 until Reset or completion. Use a terminal at least 60 columns by 21 rows for
 all settings; smaller terminals show a compact timer view.
+The running countdown is **green and bold**: work during work periods, notes
+during breaks. Paused, idle, and finished timers are not highlighted. Terminals
+without color support use bold alone.
 
 Work and note counters follow the same schedule in both interfaces. Terminal
 alerts use one bell for break start/completion and two for break end (without
