@@ -3,6 +3,13 @@ from dataclasses import dataclass
 from enum import Enum
 
 
+def format_time(seconds: float, *, round_up: bool = True) -> str:
+    whole_seconds = math.ceil(seconds) if round_up else math.floor(seconds)
+    hours, whole_seconds = divmod(whole_seconds, 3600)
+    minutes, whole_seconds = divmod(whole_seconds, 60)
+    return f"{hours:02}:{minutes:02}:{whole_seconds:02}"
+
+
 class Countdown:
     def __init__(self, seconds: float) -> None:
         self.duration = self.validate_duration(seconds)

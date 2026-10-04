@@ -2,7 +2,8 @@ import tkinter as tk
 import unittest
 from unittest.mock import call, patch
 
-from main import TimerWindow, format_time
+from gui import TimerWindow
+from timer import format_time
 from timer import Phase, SessionEvent, SessionSettings
 
 
@@ -20,10 +21,10 @@ class TimerWindowTests(unittest.TestCase):
         except tk.TclError as error:
             self.skipTest(f"Desktop display unavailable: {error}")
         self.root.withdraw()
-        self.sound_patch = patch("main.SoundPlayer", autospec=True)
+        self.sound_patch = patch("gui.SoundPlayer", autospec=True)
         self.sound_patch.start()
         self.addCleanup(self.sound_patch.stop)
-        self.clock_patch = patch("main.time.monotonic", return_value=0.0)
+        self.clock_patch = patch("gui.time.monotonic", return_value=0.0)
         self.clock = self.clock_patch.start()
         self.addCleanup(self.clock_patch.stop)
         self.app = TimerWindow(self.root)

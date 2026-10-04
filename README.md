@@ -1,4 +1,4 @@
-# Desktop countdown timer
+# Desktop and terminal countdown timer
 
 A local Python work timer with scheduled note-taking breaks and
 Start, Pause/Resume, and Reset controls. Separate displays show work time
@@ -37,7 +37,8 @@ Uncheck **Scheduled note breaks** for the original plain countdown behavior.
 
 ## Setup and run
 
-Requires Python 3.13+ with Tkinter and [uv](https://docs.astral.sh/uv/).
+Requires Python 3.13+ and [uv](https://docs.astral.sh/uv/).
+Desktop mode additionally requires Tkinter.
 
 ```sh
 uv sync
@@ -48,6 +49,29 @@ uv creates or reuses the project-local `.venv`. There are no third-party
 dependencies: the UI uses Python's standard-library Tkinter. If your Python
 installation lacks Tkinter, install a Python distribution with Tk support
 or your platform's matching Tk package; Tkinter is not installed with pip/uv.
+
+### Linux terminal interface
+
+```sh
+uv run python main.py --tui
+```
+
+Terminal mode uses standard-library `curses`, needs no Tkinter or graphical
+display, and requires an interactive terminal. Run without `--tui` for the
+original desktop window; `--help` shows launch options.
+
+Use **Up/Down** or **Tab/Shift-Tab** to select a setting, then type digits to
+replace its value (Backspace deletes). **B** toggles scheduled breaks.
+**S** or **Space** starts, pauses, or resumes; **P** pauses; **R** resets;
+**Q**, **Esc**, or **Ctrl-C** exits and restores the terminal. Settings use the
+same defaults, units, and limits as the desktop interface and remain locked
+until Reset or completion. Use a terminal at least 60 columns by 21 rows for
+all settings; smaller terminals show a compact timer view.
+
+Work and note counters follow the same schedule in both interfaces. Terminal
+alerts use one bell for break start/completion and two for break end (without
+an extra completion bell after final notes). Audibility depends on terminal
+settings. Completion leaves the interface open so you can start again.
 
 All settings are locked once the session starts. Pause freezes whichever
 timer is active (work or notes); a manual pause does not count as note time.
@@ -70,3 +94,5 @@ The tests cover the exact 2-hour schedule, independent work/note counters,
 manual pause/resume, final notes, late updates, input validation, and sound
 routing/failures. Desktop control tests use Tkinter and explicitly skip when
 no graphical display is available; scheduler and sound tests need no display.
+Terminal tests cover keyboard controls, settings, rendering at small sizes,
+alerts, restart, launch routing, and startup without importing Tkinter.
